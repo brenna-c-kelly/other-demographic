@@ -1,0 +1,287 @@
+---
+title: "00_data cleaning"
+author: "Brenna Kelly"
+date: "2024-07-22"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+
+library(dplyr)
+library(tidycensus)
+
+```
+
+
+```{r}
+
+# choosing acs variables
+
+acs_vars <- load_variables(2022, "acs5", cache = TRUE)
+
+acs_vars_sor <- acs_vars |>
+  filter(grepl("Some Other", concept) == TRUE)
+
+```
+
+
+
+
+```{r}
+
+ST <- c("AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "DC", 
+        "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY",
+        "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", 
+        "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", 
+        "OK", "OR", "PA", "PR", "RI", "SC", "SD", "TN", "TX", "UT", 
+        "VT", "VA", "WA", "WV", "WI", "WY") # for now, exclude U.S. territories
+
+# us_states <- get_acs(geography = "block group")
+
+acs_dat <- list()
+
+for (i in 1:length(ST)) {
+    acs_df <- get_acs(geography = "tract",
+                  state = ST[i],
+                  variables = c("B01003_001", 
+                                "B03003_003", 
+                                "B02001_007", 
+                                "B03002_018",
+                                "B01002F_001"),
+                                # "B01002F_001", "B01001F_002", "B01001F_003", "B01001F_004", "B01001F_005",
+                                # "B01001F_006", "B01001F_007", "B01001F_008", "B01001F_009", "B01001F_010",
+                                # "B01001F_011", "B01001F_012", "B01001F_013", "B01001F_014", "B01001F_015",
+                                # "B01001F_016", "B01001F_017", "B01001F_018", "B01001F_019", "B01001F_020",
+                                # "B01001F_021", "B01001F_022", "B01001F_023", "B01001F_024", "B01001F_025",
+                                # "B01001F_026", "B01001F_027", "B01001F_028", "B01001F_029", "B01001F_030", "B01001F_031","B06004FPR_001","B06004FPR_002","B06004FPR_003","B06004FPR_004","B06004FPR_005"),
+                  geometry = FALSE,
+                  year = 2021,
+                  output = "wide")
+    
+    acs_dat[[i]] <- acs_df
+}
+
+acs_data <- do.call(rbind, acs_dat)
+
+acs_data <- acs_data |>
+  dplyr::select(!(ends_with("M"))) # remove margin of error columns
+
+names(acs_data)[3:7] <- c("pop_denom", "pop_hisp",
+                           "pop_other", "pop_hisp_other",
+                           "median_age")
+                          # "sa_denom",
+                          # "sa_male_denom", "sa_male_0_5", "sa_male_5_9", "sa_male_10_14", "sa_male_15_17", "sa_male_18_19", "sa_male_20_24", "sa_male_25_29", "sa_male_30_34", "sa_male_35_44", "sa_male_45_54", "sa_male_55_64", "sa_male_65_74", "sa_male_75_84", "sa_male_85_plus",
+                          # "sa_female_denom", "sa_female_0_5", "sa_female_5_9", "sa_female_10_14", "sa_female_15_17", "sa_female_18_19", "sa_female_20_24", "sa_female_25_29", "sa_female_30_34", "sa_female_35_44", "sa_female_45_54", "sa_female_55_64", "sa_female_65_74", "sa_female_75_84", "sa_female_85_plus",
+                          # "pob_denom", "pob_pr", "pob_us", "pob_elsewhere", "pob_foreign")
+
+summary(acs_data)
+
+acs_data_new <- acs_data |>
+  mutate() |> 
+  mutate(pop_p_hisp_other = ifelse(pop_denom == 0, 0, pop_hisp_other / pop_denom)) |>
+  # dplyr::select(!names(acs_data)) |>
+  # dplyr::select(matches("_p_"))
+
+
+
+pop_denom
+
+
+names(acs_data_new)
+  
+
+
+
+
+
+
+head(acs_data)
+
+```
+
+
+```{r}
+
+## POP by race, ethniciy
+pop_denom B01003_001
+pop_hisp B03003_003
+pop_other B02001_007
+pop_hisp_other B03002_018
+
+# AGE
+median age, SOR B01002F_001
+
+# SEX by AGE, some other race alone
+# SA_
+sa_denom B01001F_001
+sa_male_denom B01001F_002
+sa_male_0_5 B01001F_003
+sa_male_5_9 B01001F_004
+sa_male_10_14 B01001F_005
+sa_male_15_17 B01001F_006
+sa_male_18_19 B01001F_007
+sa_male_20_24 B01001F_008
+sa_male_25_29 B01001F_009
+sa_male_30_34 B01001F_010
+sa_male_35_44 B01001F_011
+sa_male_45_54 B01001F_012
+sa_male_55_64 B01001F_013
+sa_male_65_74 B01001F_014
+sa_male_75_84 B01001F_015
+sa_male_85_plus B01001F_016
+sa_female_denom B01001F_017
+sa_female_0_5 B01001F_018
+sa_female_5_9 B01001F_019
+sa_female_10_14 B01001F_020
+sa_female_15_17 B01001F_021
+sa_female_18_19 B01001F_022
+sa_female_20_24 B01001F_023
+sa_female_25_29 B01001F_024
+sa_female_30_34 B01001F_025
+sa_female_35_44 B01001F_026
+sa_female_45_54 B01001F_027
+sa_female_55_64 B01001F_028
+sa_female_65_74 B01001F_029
+sa_female_75_84 B01001F_030
+sa_female_85_plus B01001F_031
+
+# NATIVITY for SOME OTHER RACE
+
+
+
+
+# PLACE OF BIRTH for some other race alone
+pob_denom B06004FPR_001
+pob_pr B06004FPR_002
+pob_us B06004FPR_003
+pob_elsewhere B06004FPR_004
+pob_foreign B06004FPR_005
+
+
+
+# LANGUAGE for some other race alone
+B16005F_001
+Estimate!!Total:
+Nativity by Language Spoken at Home by Ability to Speak English for the Population 5 Years and Over (Some Other Race Alone)
+NA
+175
+B16005F_002
+Estimate!!Total:!!Native:
+Nativity by Language Spoken at Home by Ability to Speak English for the Population 5 Years and Over (Some Other Race Alone)
+NA
+176
+B16005F_003
+Estimate!!Total:!!Native:!!Speak only English
+Nativity by Language Spoken at Home by Ability to Speak English for the Population 5 Years and Over (Some Other Race Alone)
+NA
+177
+B16005F_004
+Estimate!!Total:!!Native:!!Speak another language:
+Nativity by Language Spoken at Home by Ability to Speak English for the Population 5 Years and Over (Some Other Race Alone)
+NA
+178
+B16005F_005
+Estimate!!Total:!!Native:!!Speak another language:!!Speak English "very well"
+Nativity by Language Spoken at Home by Ability to Speak English for the Population 5 Years and Over (Some Other Race Alone)
+NA
+179
+B16005F_006
+Estimate!!Total:!!Native:!!Speak another language:!!Speak English less than "very well"
+Nativity by Language Spoken at Home by Ability to Speak English for the Population 5 Years and Over (Some Other Race Alone)
+NA
+180
+B16005F_007
+Estimate!!Total:!!Foreign born:
+Nativity by Language Spoken at Home by Ability to Speak English for the Population 5 Years and Over (Some Other Race Alone)
+NA
+181
+B16005F_008
+Estimate!!Total:!!Foreign born:!!Speak only English
+Nativity by Language Spoken at Home by Ability to Speak English for the Population 5 Years and Over (Some Other Race Alone)
+NA
+182
+B16005F_009
+Estimate!!Total:!!Foreign born:!!Speak another language:
+Nativity by Language Spoken at Home by Ability to Speak English for the Population 5 Years and Over (Some Other Race Alone)
+NA
+183
+B16005F_010
+Estimate!!Total:!!Foreign born:!!Speak another language:!!Speak English "very well"
+Nativity by Language Spoken at Home by Ability to Speak English for the Population 5 Years and Over (Some Other Race Alone)
+NA
+184
+B16005F_011
+Estimate!!Total:!!Foreign born:!!Speak another language:!!Speak English less than "very well"
+Nativity by Language Spoken at Home by Ability to Speak English for the Population 5 Years and Over (Some Other Race Alone)
+NA
+185
+
+
+# EDUCATION by sex, some other race alone
+C15002F_001
+Estimate!!Total:
+Sex by Educational Attainment for the Population 25 Years and Over (Some Other Race Alone)
+NA
+575
+C15002F_002
+Estimate!!Total:!!Male:
+Sex by Educational Attainment for the Population 25 Years and Over (Some Other Race Alone)
+NA
+576
+C15002F_003
+Estimate!!Total:!!Male:!!Less than high school diploma
+Sex by Educational Attainment for the Population 25 Years and Over (Some Other Race Alone)
+NA
+577
+C15002F_004
+Estimate!!Total:!!Male:!!High school graduate (includes equivalency)
+Sex by Educational Attainment for the Population 25 Years and Over (Some Other Race Alone)
+NA
+578
+C15002F_005
+Estimate!!Total:!!Male:!!Some college or associates degree
+Sex by Educational Attainment for the Population 25 Years and Over (Some Other Race Alone)
+NA
+579
+C15002F_006
+Estimate!!Total:!!Male:!!Bachelors degree or higher
+Sex by Educational Attainment for the Population 25 Years and Over (Some Other Race Alone)
+NA
+580
+C15002F_007
+Estimate!!Total:!!Female:
+Sex by Educational Attainment for the Population 25 Years and Over (Some Other Race Alone)
+NA
+581
+C15002F_008
+Estimate!!Total:!!Female:!!Less than high school diploma
+Sex by Educational Attainment for the Population 25 Years and Over (Some Other Race Alone)
+NA
+582
+C15002F_009
+Estimate!!Total:!!Female:!!High school graduate (includes equivalency)
+Sex by Educational Attainment for the Population 25 Years and Over (Some Other Race Alone)
+NA
+583
+C15002F_010
+Estimate!!Total:!!Female:!!Some college or associates degree
+Sex by Educational Attainment for the Population 25 Years and Over (Some Other Race Alone)
+NA
+584
+C15002F_011
+Estimate!!Total:!!Female:!!Bachelors degree or higher
+Sex by Educational Attainment for the Population 25 Years and Over (Some Other Race Alone)
+NA
+
+
+
+```
+
+
+
+
